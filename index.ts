@@ -1,8 +1,9 @@
 import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, Quaternion, Mesh, Matrix, Geometry, VertexData, StandardMaterial, Color3, CannonJSPlugin, PhysicsImpostor, Nullable, SceneRecorder } from 'babylonjs';
 import lilGUI from 'lil-gui';
 import * as CANNON from "cannon";
-import { MESH_NAME, IcoData, CubeData, CylinderData, GRAVITY } from './src/constants';
+import { MESH_NAME, GRAVITY, MeshData } from './src/constants';
 
+let activeScene = localStorage.getItem("activeScene") ?? "1";
 const canvas = document.getElementById("canvas");
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Couldn't find a canvas. Aborting the demo")
 
@@ -11,9 +12,9 @@ let scene = new Scene(engine);
 let dt = new SceneRecorder();
 dt.track(scene);
 
-let icoData: IcoData = { radius: 1, subdivisions: 1 }
-let cubeData: CubeData = { width: 1, height: 1, depth: 1 }
-let cylinderData: CylinderData = { height: 1, diameter: 1 };
+let icoData: MeshData = { radius: 1, subdivisions: 1 }
+let cubeData: MeshData = { width: 1, height: 1, depth: 1 }
+let cylinderData: MeshData = { height: 1, diameter: 1 };
 // Physics
 let simulating = false;
 let physicEngine: CannonJSPlugin;
@@ -38,24 +39,25 @@ const physicAttr = {
 
 let panel = new lilGUI();
 let sceneBtn = {
-	scene1: function () {
+	task1: function () {
 		scene.dispose();
 		scene = new Scene(engine);
 		prepareScene1(scene);
 	},
-	scene2: function () {
+	task2: function () {
 		scene.dispose();
 		scene = new Scene(engine);
 		prepareScene2(scene);
 	}
 }
-panel.add(sceneBtn, "scene1");
-panel.add(sceneBtn, "scene2");
+panel.add(sceneBtn, "task1");
+panel.add(sceneBtn, "task2");
 
 function prepareScene1(scene: Scene) {
 	panel.folders.forEach(folder => {
 		folder.destroy();
 	});
+	localStorage.setItem("activeScene", "1");
 	// Camera
 	const camera = new ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 4, new Vector3(0, 0, 0), scene);
 	camera.attachControl(canvas, true);
@@ -88,6 +90,7 @@ function prepareScene2(scene: Scene) {
 	panel.folders.forEach(folder => {
 		folder.destroy();
 	});
+	localStorage.setItem("activeScene", "2");
 	physicEngine = new CannonJSPlugin(false, 10, CANNON);
 	scene.enablePhysics(new Vector3(0, GRAVITY, 0), physicEngine);
 
@@ -121,7 +124,14 @@ function prepareScene2(scene: Scene) {
 	physicController.add(physicAttr, "reset");
 }
 
-prepareScene1(scene);
+switch(activeScene) {
+	case "1":
+		prepareScene1(scene);
+		break;
+	case "2":
+		prepareScene2(scene);
+		break;
+}
 engine.runRenderLoop(() => {
 	if (simulating) {
 		requestAnimationFrame(() => {

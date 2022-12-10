@@ -6,16 +6,11 @@ export const MESH_NAME = {
 
 export const GRAVITY = -9.81
 
-export type IcoData = {
+export type MeshData = {
 	radius?: number,
-	subdivisions?: number
-}
-export type CubeData = {
+	subdivisions?: number, 
 	width?: number,
 	height?: number,
-	depth?: number
-}
-export type CylinderData = {
-	height?: number,
+	depth?: number,
 	diameter?: number,
 }
