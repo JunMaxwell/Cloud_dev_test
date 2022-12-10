@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"outDir": "commonjs",
+		"target": "esNext",
+		"baseUrl": "./",
+		"lib": [
+			"esNext",
+			"dom"
+		],
+		"esModuleInterop": true,
+		"types": [
+			"babylonjs",
+			"babylonjs-gui"
+		],
+		"forceConsistentCasingInFileNames": true,
+		"noImplicitReturns": true,
+		"strict": true,
+		"moduleResolution": "node",
+	},
+	"include": [
+		"index.ts"
+	],
+	"exclude": [
+		"node_modules"
+	]
+}
