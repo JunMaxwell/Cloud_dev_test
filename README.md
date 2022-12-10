@@ -35,3 +35,13 @@ where
 The result of this animation should roughly match the following video:(https://www.youtube.com/watch?v=a7oSbf8NiLw)
 
 Please implement this on a mesh in the scene e.g. a sphere, so that the animation can be viewed
+
+
+### Solution Task 2) Bouncing Animation
+There are 2 ways of approaching this task, either using the Babylon.js animation system or using the Babylon.js physics system.
+I decided to use the Babylon.js physics system as it is more flexible and easier to implement.
+While having the most consitence results, I can't say it fits exact requirements of the task.
+The physics system is more of a simulation system, so the result is although exactly the same as the video, I have trouble to make it happens in a specific time.
+
+The animation frames although harder to implement, it is more flexible and easier to control the time of the animation.
+  can keep the animation running for a specific time and stop it when the time is up given some approximations. But the result is not as consistent as the physics system.

@@ -5,6 +5,8 @@ export const MESH_NAME = {
 }
 
 export const GRAVITY = -9.81
+export const coefficientOfRestitution = 0.9;
+export const FRAMERATE = 30;
 
 export type MeshData = {
 	radius?: number,
