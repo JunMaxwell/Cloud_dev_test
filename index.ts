@@ -6,14 +6,31 @@ const canvas = document.getElementById("canvas");
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Couldn't find a canvas. Aborting the demo")
 
 const engine = new Engine(canvas, true, {});
-
-let panel = new lilGUI();
 let icoData: IcoData = { radius: 1, subdivisions: 1 }
 let cubeData: CubeData = { width: 1, height: 1, depth: 1 }
 let cylinderData: CylinderData = { height: 1, diameter: 1 }
-const scene = new Scene(engine);
+let scene = new Scene(engine);
 
-function prepareScene(scene: Scene) {
+let panel = new lilGUI();
+let sceneBtn = {
+	scene1: function () {
+		scene.dispose();
+		scene = new Scene(engine);
+		prepareScene1(scene);
+	},
+	scene2: function () {
+		scene.dispose();
+		scene = new Scene(engine);
+		prepareScene2(scene);
+	}
+}
+panel.add(sceneBtn, "scene1");
+panel.add(sceneBtn, "scene2");
+
+function prepareScene1(scene: Scene) {
+	panel.folders.forEach(folder => {
+		folder.destroy();
+	});
 	// Camera
 	const camera = new ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 4, new Vector3(0, 0, 0), scene);
 	camera.attachControl(canvas, true);
@@ -30,24 +47,53 @@ function prepareScene(scene: Scene) {
 
 	const cylinder = MeshBuilder.CreateCylinder(MESH_NAME.CYLINDER, {}, scene);
 	cylinder.position.set(2, 0, 0);
-}
 
-prepareScene(scene);
-
-scene.onPointerDown = () => {
-	var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), scene.activeCamera);
-
-	var hit = scene.pickWithRay(ray);
-
-	if (hit?.pickedMesh && hit.pickedMesh instanceof Mesh) {
-		outlineObject(hit.pickedMesh);
-		meshController(hit.pickedMesh);
+	scene.onPointerDown = () => {
+		var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), scene.activeCamera);
+	
+		var hit = scene.pickWithRay(ray);
+	
+		if (hit?.pickedMesh && hit.pickedMesh instanceof Mesh) {
+			meshController(hit.pickedMesh);
+		}
 	}
 }
 
+function prepareScene2(scene: Scene) {
+	panel.folders.forEach(folder => {
+		folder.destroy();
+	});
+	// Camera
+	const camera = new ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 4, new Vector3(0, 0, 0), scene);
+	camera.attachControl(canvas, true);
+
+	// Light
+	new HemisphericLight("light", new Vector3(0.5, 1, 0.8).normalize(), scene);
+
+	// Create Blue sphere
+	const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+	sphere.position.set(0, 0, 0);
+	const material = new StandardMaterial("material", scene);
+	material.diffuseColor = Color3.Blue();
+	sphere.material = material;
+}
+
+prepareScene1(scene);
+
+engine.runRenderLoop(() => {
+	scene.render();
+});
+
+window.addEventListener("resize", () => {
+	engine.resize();
+});
+
 function meshController(mesh: Mesh) {
-	panel.destroy();
-	panel = new lilGUI();
+	panel.folders.forEach(folder => {
+		folder.destroy();
+	});
+	const folder = panel.addFolder(mesh.name);
+	outlineObject(mesh);
 	switch (mesh.name) {
 		case MESH_NAME.CUBE:
 			{
@@ -56,36 +102,36 @@ function meshController(mesh: Mesh) {
 					height: mesh.scaling.y,
 					depth: mesh.scaling.z
 				}
-				panel.title("Cube");
-				panel.add(cubeData, "width", 0, 10).onChange((value: number) => {
+				folder.title("Cube");
+				folder.add(cubeData, "width", 0, 10).onChange((value: number) => {
 					mesh.scaling.x = value;
 				});
-				panel.add(cubeData, "height", 0, 10).onChange((value: number) => {
+				folder.add(cubeData, "height", 0, 10).onChange((value: number) => {
 					mesh.scaling.y = value;
 				});
-				panel.add(cubeData, "depth", 0, 10).onChange((value: number) => {
+				folder.add(cubeData, "depth", 0, 10).onChange((value: number) => {
 					mesh.scaling.z = value;
 				});
 			}
 			break;
 		case MESH_NAME.ICOSPHERE:
 			{
-				panel.title("Icosphere");
-				panel.add(icoData, "radius", 0.1, 2.0).step(0.1).onChange((value: number) => {
+				folder.title("Icosphere");
+				folder.add(icoData, "radius", 0.1, 2.0).step(0.1).onChange((value: number) => {
 					updateGroupGeometry(mesh, CreateIcoSphereGeometry({ radius: value }));
 				})
-				panel.add(icoData, "subdivisions", 1, 10).step(1).onChange((value: number) => {
+				folder.add(icoData, "subdivisions", 1, 10).step(1).onChange((value: number) => {
 					updateGroupGeometry(mesh, CreateIcoSphereGeometry({ subdivisions: value }));
 				})
 			}
 			break;
 		case MESH_NAME.CYLINDER:
 			{
-				panel.title("Cylinder");
-				panel.add(cylinderData, "height", 0.1, 2.0).step(0.1).onChange((value: number) => {
+				folder.title("Cylinder");
+				folder.add(cylinderData, "height", 0.1, 2.0).step(0.1).onChange((value: number) => {
 					updateGroupGeometry(mesh, CreateCylinderGeometry({ height: value }));
 				});
-				panel.add(cylinderData, "diameter", 0.1, 2.0).step(0.1).onChange((value: number) => {
+				folder.add(cylinderData, "diameter", 0.1, 2.0).step(0.1).onChange((value: number) => {
 					updateGroupGeometry(mesh, CreateCylinderGeometry({ diameter: value }));
 				});
 			}
@@ -121,11 +167,3 @@ function outlineObject(pickedMesh: Mesh) {
 	else
 		pickedMesh.renderOutline = false;
 }
-
-engine.runRenderLoop(() => {
-	scene.render();
-});
-
-window.addEventListener("resize", () => {
-	engine.resize();
-});

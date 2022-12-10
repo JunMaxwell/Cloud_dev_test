@@ -18,7 +18,7 @@ When a primitive mesh is selected, the UI should display options specific for th
 * For the *Cylinder*: Diameter and height (range 0.1-2.0)
 * For the *IcoSphere*: Diameter (range 0.1-2.0) and subdivisions (range 1-10)
 
-#### Task 1) UI & Primitive Meshes
+#### Solution Task 1) UI & Primitive Meshes
 I could create a new set of HTML UI with API and controller to handle elements change,
 But I find it redundant, so I decided to use the lil-GUI library to create a simple UI with controller and APIs ready to use.
 In previous projects, I ussually spent time on custom made GUI but due to the nature of the assessment, I decided not to and use a library instead.
