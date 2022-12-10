@@ -1,4 +1,4 @@
-import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, Quaternion, Mesh, Matrix, Geometry, VertexData, StandardMaterial, Color3, CannonJSPlugin, PhysicsImpostor } from 'babylonjs';
+import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, Quaternion, Mesh, Matrix, Geometry, VertexData, StandardMaterial, Color3, CannonJSPlugin, PhysicsImpostor, Nullable, SceneRecorder } from 'babylonjs';
 import lilGUI from 'lil-gui';
 import * as CANNON from "cannon";
 import { MESH_NAME, IcoData, CubeData, CylinderData, GRAVITY } from './src/constants';
@@ -7,17 +7,27 @@ const canvas = document.getElementById("canvas");
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Couldn't find a canvas. Aborting the demo")
 
 const engine = new Engine(canvas, true, {});
+let scene = new Scene(engine);
+let dt = new SceneRecorder();
+dt.track(scene);
+
 let icoData: IcoData = { radius: 1, subdivisions: 1 }
 let cubeData: CubeData = { width: 1, height: 1, depth: 1 }
-let cylinderData: CylinderData = { height: 1, diameter: 1 }
-let scene = new Scene(engine);
+let cylinderData: CylinderData = { height: 1, diameter: 1 };
+// Physics
 let simulating = false;
+let physicEngine: CannonJSPlugin;
+
 let sphere: Mesh;
 const physicAttr = {
 	amplitude: 1,
 	duration: 1,
 	applyBouncing: () => {
-		simulating = true;
+		if (sphere) {
+			simulating = true;
+			if (!sphere.physicsImpostor || sphere.physicsImpostor.isDisposed) sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
+			// sphere.physicsImpostor.applyImpulse(new Vector3(0, 1, 0), sphere.getAbsolutePosition());
+		}
 	},
 	reset: () => {
 		simulating = false;
@@ -78,7 +88,7 @@ function prepareScene2(scene: Scene) {
 	panel.folders.forEach(folder => {
 		folder.destroy();
 	});
-	let physicEngine = new CannonJSPlugin(true, 10, CANNON);
+	physicEngine = new CannonJSPlugin(false, 10, CANNON);
 	scene.enablePhysics(new Vector3(0, GRAVITY, 0), physicEngine);
 
 	// Camera
@@ -90,7 +100,7 @@ function prepareScene2(scene: Scene) {
 
 	// Create Blue sphere
 	sphere = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
-	sphere.position.set(0, 0, 0);
+	sphere.position.set(0, physicAttr.amplitude, 0);
 	const material = new StandardMaterial("material", scene);
 	material.diffuseColor = Color3.Blue();
 	sphere.material = material;
@@ -98,31 +108,27 @@ function prepareScene2(scene: Scene) {
 	// Create Physic ground
 	const ground = MeshBuilder.CreateGround("ground", { width: 6, height: 6 }, scene);
 	ground.position.set(0, -1, 0);
-	ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9 }, scene);
+	ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 1 }, scene);
 
 	const physicController = panel.addFolder("Simulation");
 	physicController.add(physicAttr, "amplitude", 0, 10).step(1).onChange((value: number) => {
 		sphere.position.y = value;
 	});
 	physicController.add(physicAttr, "duration", 0, 10).step(1).onChange((value: number) => {
-		physicEngine.setTimeStep(1 / (value * 1000));
+		scene.getPhysicsEngine()!.setTimeStep(1 / (value * 10));
 	});
 	physicController.add(physicAttr, "applyBouncing");
 	physicController.add(physicAttr, "reset");
 }
 
 prepareScene1(scene);
-let time = 0;
 engine.runRenderLoop(() => {
-	scene.render();
-	if (simulating && scene.getPhysicsEngine() !== null) {
-		while (time < physicAttr.duration) {
-			time = lerp(time, physicAttr.duration, engine.getDeltaTime());
-		
-			if (sphere) {
-				if (!sphere.physicsImpostor) sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
-			}
-		}
+	if (simulating) {
+		requestAnimationFrame(() => {
+			scene.render();
+		})
+	} else {
+		scene.render();
 	}
 });
 
