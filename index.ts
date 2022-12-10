@@ -19,7 +19,6 @@ let physicEngine: CannonJSPlugin;
 
 let sphere: AbstractMesh;
 let activeBall: AbstractMesh;
-let animTable: Animatable;
 
 const animationAttr = {
 	amplitude: 1,
