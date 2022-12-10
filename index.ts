@@ -24,39 +24,58 @@ const physicAttr = {
 	amplitude: 1,
 	duration: 1,
 	applyBouncing: () => {
-		if (sphere) {
-			simulating = true;
-			if (!sphere.physicsImpostor || sphere.physicsImpostor.isDisposed) sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
-			// sphere.physicsImpostor.applyImpulse(new Vector3(0, 1, 0), sphere.getAbsolutePosition());
+		switch (activeScene) {
+			case "2":
+				console.log("bouncing");
+				break;
+			case "3":
+				if (sphere) {
+					simulating = true;
+					if (!sphere.physicsImpostor || sphere.physicsImpostor.isDisposed) sphere.physicsImpostor = new PhysicsImpostor(sphere, PhysicsImpostor.SphereImpostor, { mass: 1, restitution: 0.9 }, scene);
+					// sphere.physicsImpostor.applyImpulse(new Vector3(0, 1, 0), sphere.getAbsolutePosition());
+				}
+				break;
 		}
 	},
 	reset: () => {
-		simulating = false;
-		if (sphere && sphere.physicsImpostor) sphere.physicsImpostor.dispose();
-		sphere.position.set(0, physicAttr.amplitude, 0);
+		switch (activeScene) {
+			case "2":
+				console.log("reset");
+				break;
+			case "3":
+				if (sphere) {
+					simulating = false;
+					if (sphere.physicsImpostor) sphere.physicsImpostor.dispose();
+					sphere.position.set(0, physicAttr.amplitude, 0);
+				}
+		}
 	}
 }
 
 let panel = new lilGUI();
 let sceneBtn = {
-	task1: function () {
+	"task 1": function () {
 		scene.dispose();
 		scene = new Scene(engine);
 		prepareScene1(scene);
 	},
-	task2: function () {
+	"task 2: Animation Frames": function () {
 		scene.dispose();
 		scene = new Scene(engine);
 		prepareScene2(scene);
+	},
+	"task 2: Physics": function () {
+		scene.dispose();
+		scene = new Scene(engine);
+		prepareScene3(scene);
 	}
 }
-panel.add(sceneBtn, "task1");
-panel.add(sceneBtn, "task2");
+panel.add(sceneBtn, "task 1");
+panel.add(sceneBtn, "task 2: Animation Frames");
+panel.add(sceneBtn, "task 2: Physics");
 
 function prepareScene1(scene: Scene) {
-	panel.folders.forEach(folder => {
-		folder.destroy();
-	});
+	disposeGUIFolders();
 	localStorage.setItem("activeScene", "1");
 	// Camera
 	const camera = new ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 4, new Vector3(0, 0, 0), scene);
@@ -87,11 +106,60 @@ function prepareScene1(scene: Scene) {
 }
 
 function prepareScene2(scene: Scene) {
-	panel.folders.forEach(folder => {
-		folder.destroy();
-	});
+	disposeGUIFolders();
 	localStorage.setItem("activeScene", "2");
+	// Camera
+	const camera = new ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 4, new Vector3(0, 0, 0), scene);
+	camera.attachControl(canvas, true);
+
+	// Light
+	new HemisphericLight("light", new Vector3(0.5, 1, 0.8).normalize(), scene);
+
+	// Create Red Sphere
+	const redSphere = MeshBuilder.CreateSphere("redSphere", { diameter: 1 }, scene);
+	redSphere.position.set(2, 1, 0);
+	const material = new StandardMaterial("material", scene);
+	material.diffuseColor = Color3.Red();
+	redSphere.material = material;
+
+	// Create Green Sphere
+	const greenSphere = MeshBuilder.CreateSphere("greenSphere", { diameter: 1 }, scene);
+	greenSphere.position.set(-2, 1, 0);
+	const material2 = new StandardMaterial("material2", scene);
+	material2.diffuseColor = Color3.Green();
+	greenSphere.material = material2;
+
+	// Create Ground plane
+	const ground = MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+	const groundMaterial = new StandardMaterial("groundMaterial", scene);
+	groundMaterial.diffuseColor = Color3.Gray();
+	ground.material = groundMaterial;
+
+	const SimulationController = panel.addFolder("Simulation");
+	SimulationController.add(physicAttr, "amplitude", 0, 10).step(1).onChange((value: number) => {
+		redSphere.position.set(2, value, 0);
+		greenSphere.position.set(-2, value, 0);
+	})
+	SimulationController.add(physicAttr, "duration", 0, 10).step(1);
+	SimulationController.add(physicAttr, "applyBouncing");
+	SimulationController.add(physicAttr, "reset");
+	
+	scene.onPointerDown = () => {
+		var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), scene.activeCamera);
+
+		var hit = scene.pickWithRay(ray);
+
+		if (hit?.pickedMesh && hit.pickedMesh instanceof Mesh && hit.pickedMesh.name !== "ground") {
+			outlineObject(hit.pickedMesh)
+		}
+	}
+}
+
+function prepareScene3(scene: Scene) {
+	disposeGUIFolders();
+	localStorage.setItem("activeScene", "3");
 	physicEngine = new CannonJSPlugin(false, 10, CANNON);
+	physicEngine.setTimeStep(1 / (physicAttr.duration * 15))
 	scene.enablePhysics(new Vector3(0, GRAVITY, 0), physicEngine);
 
 	// Camera
@@ -124,12 +192,15 @@ function prepareScene2(scene: Scene) {
 	physicController.add(physicAttr, "reset");
 }
 
-switch(activeScene) {
+switch (activeScene) {
 	case "1":
 		prepareScene1(scene);
 		break;
 	case "2":
 		prepareScene2(scene);
+		break;
+	case "3":
+		prepareScene3(scene);
 		break;
 }
 engine.runRenderLoop(() => {
@@ -147,9 +218,7 @@ window.addEventListener("resize", () => {
 });
 
 function meshController(mesh: Mesh) {
-	panel.folders.forEach(folder => {
-		folder.destroy();
-	});
+	disposeGUIFolders();
 	const folder = panel.addFolder(mesh.name);
 	outlineObject(mesh);
 	switch (mesh.name) {
@@ -226,7 +295,8 @@ function outlineObject(pickedMesh: Mesh) {
 		pickedMesh.renderOutline = false;
 }
 
-/// Linear interpolation between two values
-function lerp(a: number, b: number, dt: number) {
-	return (1 - dt) * a + dt * b;
+function disposeGUIFolders() {
+	panel.folders.forEach(folder => {
+		folder.destroy();
+	});
 }
