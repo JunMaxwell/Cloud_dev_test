@@ -4,6 +4,8 @@ export const MESH_NAME = {
     CYLINDER: "Cylinder",
 }
 
+export const GRAVITY = -9.81
+
 export type IcoData = {
 	radius?: number,
 	subdivisions?: number
